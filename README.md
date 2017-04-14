@@ -1,0 +1,3 @@
+This is a scad utility to create qrcodes.
+This is an *inappropriate* use of openscad as it is not designed for
+bit-twiddling. But it's fun to see how far we can push the tech...

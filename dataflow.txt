@@ -1,0 +1,21 @@
+Data Flow
+
+1: URL
+
+1->2: Data byte array
+
+2->3: Error correction byte array
+
+2,3->4: All data byte array (interleaved...)
+
+4->5: bit array
+
+4->6: Data length
+
+6->7: QR size
+
+7->8: QR Mask array
+
+5,8->9: bit lookup array
+
+8,9->10: QR array
