@@ -1,4 +1,6 @@
-URL="http://furbrain.org.uk/";
+use <util.scad>;
+use <polynom.scad>;
+URL="http://www.google.com";
 
 //convert a character into its UTF/ascii value
 function ord(char) = search(char, chr([32:128]))[0]+32;
@@ -14,16 +16,14 @@ function encoding_mode(mode) = [0,1,0,0];
 function character_count(mode, data) = bittify(len(data), 8);
 
 
-//padding code
-function pad1(l, m) = min(4,m-l);
-function pad_byte(l,m) = (8 - ((l+pad1(l,m)) % 8)) % 8;
-function pad_count(l, m) = pad1(l, m) + pad_byte(l, m);
-function zero_pad(data, max_length) = concat(data, [for (i=[1:pad_count(len(data), max_length)]) 0]);
-function extra_padding(l) = bytes_to_bits([for (i = [1:l/8]) i%2?17:236]);
-function pad_remainder(data, max_length) = concat(data, extra_padding(max_length-len(data)));
+//take some text data, and convert into a binary data section
+function make_data(data, max_length, count_length = 8) = let(
+    data_codes = [for (i=[0:len(data)-1]) ord(data[i])], // convert data to byte values...
+    d1 = concat([0,1,0,0], bittify(len(data_codes)-1, count_length), bytes_to_bits(data_codes)),
+    d2 = concat(d1, vecfill(0,min(4, max_length*8 - len(d1)))), //add up to 4 padding zeroes
+    d3 = concat(d2, vecfill(0,(8-len(d2) % 8) % 8)), //fill up to a full bytes
+    d4 = concat(d3, bytes_to_bits([for (i = [1:max_length-len(d3)/8]) i%2?236:17])),
+    d5 = bits_to_bytes(d4))
+    d5;
 
-
-function do_padding(data, max_length)  = let (d1 = zero_pad(data,max_length)) pad_remainder(d1,max_length);
-data_bytes = [for (i=[0:len(URL)-1]) ord(URL[i])];
-data_bits = bytes_to_bits(data_bytes);
-
+echo(make_data(URL,max_length=34));
