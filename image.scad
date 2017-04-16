@@ -26,8 +26,24 @@ function get_alignment_module(x0, y0, align_centre) = let(
 
 /* returns true if given module is in the formatting area */    
 function is_in_format(x, y, size) = 
-    x==8 && (y<=8 || y>=size-8)? true :
+    x==6 || y==6 ? false:
+    x==8 && (y<=8 || y>=size-7)? true :
     y==8 && (x<=8 || x>=size-8)? true : false;
+    
+/* return module value for a point within the format area
+   inputs: 
+     x,y = position of input
+     size = maximum possible value for x or y
+     ec_code = encoding style: one of "L", "M", "Q", or "H"
+     mask = mask type: a value from 0-7
+
+*/
+
+function get_format_module(x, y, size, ec_code, mask)  = let(
+    format_code =format_codes[search([[ec_code,mask]], format_codes)[0]],
+    index = (y==8) ? (x>=size-8 ? size-x : (x>=7? 15-x : 14-x))
+                   : (y>=size-8 ? 14-(size-y) : (y>=7? y-1 : y)))
+    format_code[1][14-index];
     
 /* returns true if given module is in the version area */
 function is_in_version(x, y, size, version) = 
@@ -120,13 +136,32 @@ function map_down_column(template, col, size) =
 function make_mapping(template, up = true, col=undef) = let(
     size = len(template)-1,
     c = col== undef ? size : 
-        col==6 ?5 : col)//adjust for vertical timing row
+        col==6 ?5 : col)//adjust for vertical timing column
     c<=0? []:
     up ? concat(map_up_column(template,c,size),make_mapping(template,false,c-2))
        : concat(map_down_column(template,c,size),make_mapping(template,true,c-2));
+
+function mask_func(x, y, mask) =
+    mask==0 ? (x+y) % 2 :
+    mask==1 ? y % 2 :
+    mask==2 ? x % 3 :
+    mask==3 ? (y + x) % 3:
+    mask==4 ? (floor(y/2) + floor(x/3)) % 2 :
+    mask==5 ? ((y * x) % 2) + ((y * x) % 3) :
+    mask==6 ? (((y * x) % 2) + ((y * x) % 3)) % 2 :
+    mask==7 ? (((y + x) % 2) + ((y * x) % 3)) % 2: undef;
+    
+function get_masked_module(x, y, data, map, mask) = let(
+    value = data[search([[x,y]],map)[0]],
+    mask_val = mask_func(x, y, mask)==0)
+    mask_val ? 1-value: value;
             
-function image_module(x, y, data, template, map, version, ec_code, mask) = 
-    template[x][y]!=undef? template[x][y]:data[search([[x,y]],map)[0]];
+function image_module(x, y, data, template, map, version, ec_code, mask) = let(
+    size = len(template)-1,
+    in_format = is_in_format(x, y, size))
+    in_format ? get_format_module(x, y, size, ec_code, mask) :
+    template[x][y]!=undef ? template[x][y]:
+    get_masked_module(x, y, data, map, mask);
             
 function make_image(data, template, map, version, ec_code, mask) = let(
     size = len(template)-1)
