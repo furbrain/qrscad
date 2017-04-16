@@ -104,7 +104,7 @@ function is_in_alignment(x, y, version) = let(
     xm && ym && !collision? [xm,ym] : [];
 
 /* returns true if given module is in the formatting area */    
-function is_in_format(x,y, size) = 
+function is_in_format(x, y, size) = 
     x==8 && (y<=8 || y>=size-8)? true :
     y==8 && (x<=8 || x>=size-8)? true : false;
     
@@ -113,6 +113,14 @@ function is_in_version(x, y, size, version) =
     version < 7 ? false:
     x<6 && y>=size-11 && y<=size-9 ? true :
     y<6 && x>=size-11 && x<=size-9 ? true : false;
+    
+function get_version_module(x, y, size, version) = let(
+    ver_code = version_codes[version-7],
+    x_off = x>y? x-(size-11): y-(size-11),
+    y_off = x>y? y : x,
+    index = 17-(x_off+y_off*3))
+    //[x_off, y_off, index];
+    ver_code[index];
     
 
 /* returns module value for a point within an alignment pattern
@@ -152,7 +160,7 @@ function get_finder_module(x0, y0, x_off, y_off) = let(
       0 = white
       1 = black
 */
-function template_module(version, size, x, y) = let(
+function template_module(x, y, size, version) = let(
     in_finder = (x<8 && y <8) || (x<8 && y>=size-8) || (x>=size-8 && y<8),
     finder_x_offset = x>=size-8? size-7 : 0,
     finder_y_offset = y>=size-8? size-7 : 0,
@@ -166,7 +174,7 @@ function template_module(version, size, x, y) = let(
     in_timing_band ? (x+y+1) % 2 :
     in_dark_mod ? 1: 
     in_format ? 0: 
-    in_version ? 0: undef;  //FIXME add version info
+    in_version ? get_version_module(x, y, size, version): undef;  //FIXME add version info
     
 /* create a template for a given version 
    undef = available for data
@@ -175,7 +183,7 @@ function template_module(version, size, x, y) = let(
 */
 function make_basic_template(version) = let(
     size = version*4+17)
-    [for (x=[0:size-1]) [for (y=[0:size-1]) template_module(version,size,x,y)]];
+    [for (x=[0:size-1]) [for (y=[0:size-1]) template_module(x, y, size, version)]];
 
 /* create a mapping for each bit of a column, going up*/
 function map_up_column(template, col, size) = 
@@ -218,7 +226,7 @@ function make_image(data, template, map, version, ec_code, mask) = let(
             
 function make_qrcode(data, ec_code="M", version=undef) = let(
     //determine ideal version
-    v = version==undef ?find_version(len(data), ec_code) :v,
+    v = version==undef ?find_version(len(data), ec_code) :version,
     t1 = get_block_info(v, ec_code),
     max_length = t1[0],
     block_info = t1[1],
@@ -243,7 +251,7 @@ module instantiate_code(pattern) {
             if (pattern[i][j]==0) 
                 translate([i,-j,0]) cube([1,1,1]);
             if (pattern[i][j]==1)
-                translate([i,-j,0]) cube([1,1,2]);
+                color("black") translate([i,-j,0]) cube([1,1,2]);
         }
     }
 }
@@ -253,14 +261,8 @@ module instantiate_code(pattern) {
 */
 URL="http://www.google.com";
 
-echo(find_version(len(URL),"Q"));
-blocks = make_qrcode(URL,"Q");
-template = make_basic_template(3);
-echo("a");
+blocks = make_qrcode(URL,"Q",version=7);
+template = make_basic_template(7);
 map = flatten(make_mapping(template));
-echo(map);
-echo(search([[25,21]],map)[0]);
-echo(bytes_to_bits(blocks));
 image = make_image(bytes_to_bits(blocks), template, map, 3, "Q", 0);
-echo(image);
 instantiate_code(image);
