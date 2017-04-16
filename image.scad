@@ -12,26 +12,6 @@ function is_in_alignment(x, y, version) = let(
     collision = (xm==6 && ym==6) || (xm==6 && ym==last) || (xm==last && ym==6))
     xm && ym && !collision? [xm,ym] : [];
 
-/* returns true if given module is in the formatting area */    
-function is_in_format(x, y, size) = 
-    x==8 && (y<=8 || y>=size-8)? true :
-    y==8 && (x<=8 || x>=size-8)? true : false;
-    
-/* returns true if given module is in the version area */
-function is_in_version(x, y, size, version) = 
-    version < 7 ? false:
-    x<6 && y>=size-11 && y<=size-9 ? true :
-    y<6 && x>=size-11 && x<=size-9 ? true : false;
-    
-function get_version_module(x, y, size, version) = let(
-    ver_code = version_codes[version-7],
-    x_off = x>y? x-(size-11): y-(size-11),
-    y_off = x>y? y : x,
-    index = 17-(x_off+y_off*3))
-    //[x_off, y_off, index];
-    ver_code[index];
-    
-
 /* returns module value for a point within an alignment pattern
    x0,y0 : module coordinates 
    align_center : centre point of pattern
@@ -43,11 +23,39 @@ function get_alignment_module(x0, y0, align_centre) = let(
     y==-2 || y==2 ? 1 :
     x==0 && y==0 ? 1 : 0;
 
+
+/* returns true if given module is in the formatting area */    
+function is_in_format(x, y, size) = 
+    x==8 && (y<=8 || y>=size-8)? true :
+    y==8 && (x<=8 || x>=size-8)? true : false;
+    
+/* returns true if given module is in the version area */
+function is_in_version(x, y, size, version) = 
+    version < 7 ? false:
+    x<6 && y>=size-11 && y<=size-9 ? true :
+    y<6 && x>=size-11 && x<=size-9 ? true : false;
+
+/* return module value for a point within version pattern */    
+function get_version_module(x, y, size, version) = let(
+    ver_code = version_codes[version-7],
+    x_off = x>y? x-(size-11): y-(size-11),
+    y_off = x>y? y : x,
+    index = 17-(x_off+y_off*3))
+    //[x_off, y_off, index];
+    ver_code[index];
+    
+
+/* returns true if given module is in a finder area */
+function is_in_finder(x, y, size) = 
+    (x<8 && y <8) || (x<8 && y>=size-8) || (x>=size-8 && y<8);
+    
 /* returns module value for a point within a finder pattern
    x0,y0 :  module coordinates
    x_off, y_off : coordinates of top left module in finder pattern
 */
-function get_finder_module(x0, y0, x_off, y_off) = let(
+function get_finder_module(x0, y0, size) = let(
+    x_off = x0>=size-8? size-7 : 0,
+    y_off = y0>=size-8? size-7 : 0,
     x = x0-x_off,
     y = y0-y_off)
     x==-1 || x== 7 ? 0: //separator
@@ -70,15 +78,13 @@ function get_finder_module(x0, y0, x_off, y_off) = let(
       1 = black
 */
 function template_module(x, y, size, version) = let(
-    in_finder = (x<8 && y <8) || (x<8 && y>=size-8) || (x>=size-8 && y<8),
-    finder_x_offset = x>=size-8? size-7 : 0,
-    finder_y_offset = y>=size-8? size-7 : 0,
+    in_finder = is_in_finder(x, y, size),
     in_timing_band = x==6 || y==6,
     in_dark_mod = x==8 && y==size-8,
     in_alignment = is_in_alignment(x, y, version),
     in_format = is_in_format(x, y, size),
     in_version = is_in_version(x, y, size, version))
-    in_finder ? get_finder_module(x, y, finder_x_offset, finder_y_offset) :
+    in_finder ? get_finder_module(x, y, size) :
     in_alignment ? get_alignment_module(x, y, in_alignment) :
     in_timing_band ? (x+y+1) % 2 :
     in_dark_mod ? 1: 
