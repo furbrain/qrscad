@@ -27,3 +27,4 @@ function ixor(arr) = let (l=len(arr)) l==1? arr[0]:
                                     l==2? xor(arr[0],arr[1])
                                         : xor(ixor(head(arr)),arr[l-1]);
 
+function flatten(arr) = [for (a=arr) for (b=a) b];
