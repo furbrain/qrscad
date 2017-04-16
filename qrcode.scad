@@ -1,6 +1,7 @@
 use <util.scad>;
 use <polynom.scad>;
 use <image.scad>;
+use <analyse.scad>;
 include <constants.scad>;
 
 
@@ -109,16 +110,19 @@ function make_qrcode(data, ec_code="M", version=undef) = let(
     block_info = t1[1],
     data_sequence = make_data(data, max_length), //FIXME - need to update count_length depending on version
     blocks = make_blocks(block_info,data_sequence),
-    iblocks = concat(interleave(blocks[0]), interleave(blocks[1])),
+    iblocks = concat(interleave(blocks[0]), interleave(blocks[1]),[0]),
     content = bytes_to_bits(iblocks),
     template = make_basic_template(v),
-    map = flatten(make_mapping(template)))
     //create mapping for data
+    map = flatten(make_mapping(template)),
     //create your 9 test codes
+    images = [for (i=[0:7]) make_image(bytes_to_bits(iblocks), template, map, v, ec_code, i)],
     //test each code
+    scores = [for (i=images) score(i)],
     //select best one
+    image = images[search(min(scores),scores)[0]])
     //return it
-    iblocks;
+    image;
 
 module instantiate_code(pattern) {
     maxi = len(pattern);
@@ -126,9 +130,9 @@ module instantiate_code(pattern) {
     for (i = [0:maxi-1]) {
         for (j = [0:maxj-1]) {
             if (pattern[i][j]==0) 
-                translate([i,-j,0]) cube([1,1,1]);
+                color("white") translate([i,-j,0]) cube([1,1,1]);
             if (pattern[i][j]==1)
-                color("black") translate([i,-j,0]) cube([1,1,2]);
+                color("black") translate([i,-j,0]) cube([1,1,1]);
         }
     }
 }
@@ -136,10 +140,5 @@ module instantiate_code(pattern) {
 /*
     Testing section
 */
-URL="http://www.google.com";
-
-blocks = make_qrcode(URL,"Q",version=7);
-template = make_basic_template(7);
-map = flatten(make_mapping(template));
-image = make_image(bytes_to_bits(blocks), template, map, 3, "Q", 0);
-instantiate_code(image);
+URL="I think my QR code is finally working...";
+instantiate_code(make_qrcode(URL));
